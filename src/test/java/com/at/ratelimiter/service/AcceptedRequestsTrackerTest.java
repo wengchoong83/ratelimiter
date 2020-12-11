@@ -24,10 +24,10 @@ class AcceptedRequestsTrackerTest {
   void removeFromTracker_successfully() {
     AcceptedRequestsTracker acceptedRequestsTracker = new AcceptedRequestsTracker();
     acceptedRequestsTracker
-        .addToAcceptedRequests("1.0.0.1", 1l);
+        .addToAcceptedRequests("1.0.0.1", 1L);
 
     assertEquals(1, acceptedRequestsTracker.getAcceptedRequests().get("1.0.0.1").size());
-    acceptedRequestsTracker.removeFromAcceptedRequests("1.0.0.1", 1l);
+    acceptedRequestsTracker.removeFromAcceptedRequests("1.0.0.1", 1L);
     assertEquals(0, acceptedRequestsTracker.getAcceptedRequests().get("1.0.0.1").size());
   }
 
@@ -38,12 +38,12 @@ class AcceptedRequestsTrackerTest {
 
     acceptedRequestsTracker
         .addToAcceptedRequests("1.0.0.1", System.currentTimeMillis());
-    Thread.sleep(2000l);
+    Thread.sleep(2000L);
     acceptedRequestsTracker
         .addToAcceptedRequests("1.0.0.1", System.currentTimeMillis());
 
     long waitTime = acceptedRequestsTracker.getWaitTime("1.0.0.1");
-    assertTrue(waitTime >= 7l);
-    assertTrue(waitTime <= 10l);
+    assertTrue(waitTime >= 7L);
+    assertTrue(waitTime <= 10L);
   }
 }

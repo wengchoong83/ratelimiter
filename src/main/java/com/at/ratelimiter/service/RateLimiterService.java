@@ -21,10 +21,10 @@ public class RateLimiterService {
   @Value("${cache.size:1000}")
   private int cacheSize;
 
-  @Value("${cache.expiry:10}")
+  @Value("${cache.expiry:3600}")
   private int cacheExpiry;
 
-  @Value("${rate.limit:2}")
+  @Value("${rate.limit:100}")
   private int rateLimit;
 
   private final AcceptedRequestsTracker acceptedRequestsTracker;
@@ -36,45 +36,52 @@ public class RateLimiterService {
   }
 
   public boolean isWithinRateLimits(String ipAddress) {
-    log.info("---");
-    log.info("request ip address: " + ipAddress);
     log.trace("requestMap: {}, {}", requestCaches.toString(), requestCaches.size());
 
     if (requestCaches.containsKey(ipAddress)) {
       LoadingCache<String, String> cacheForIp = requestCaches.get(ipAddress);
-      log.info("cache exists, size: {}", cacheForIp.size());
+      log.trace("cache exists, size: {}", cacheForIp.size());
 
       // force eviction of expired keys
       cacheForIp.cleanUp();
+
       if (cacheForIp.size() >= rateLimit) {
         return false;
       } else {
         long currentTimeMillis = System.currentTimeMillis();
+
+        // add an entry to the cache, format: UUID*IpAddress_TimeMillis
         cacheForIp.getUnchecked(UUID.randomUUID() + "*" + ipAddress + "_" + currentTimeMillis);
 
+        // add an entry to the request tracker as well
         acceptedRequestsTracker.addToAcceptedRequests(ipAddress, currentTimeMillis);
+
         return true;
       }
     } else {
-      LoadingCache<String, String> newCacheForIp = createCache();
-      log.info("cache not found, adding the first entry now");
+      log.trace("cache not found, adding the first entry now");
 
       long currentTimeMillis = System.currentTimeMillis();
-      newCacheForIp.getUnchecked(UUID.randomUUID() + "*" + ipAddress + "_" + currentTimeMillis);
 
-      acceptedRequestsTracker.addToAcceptedRequests(ipAddress, currentTimeMillis);
+      // create a new cache, add an entry to the cache, format: UUID*IpAddress_TimeMillis, then add the cache to the map
+      LoadingCache<String, String> newCacheForIp = createCache();
+      newCacheForIp.getUnchecked(UUID.randomUUID() + "*" + ipAddress + "_" + currentTimeMillis);
       requestCaches.putIfAbsent(ipAddress, newCacheForIp);
+
+      // add an entry to the request tracker as well
+      acceptedRequestsTracker.addToAcceptedRequests(ipAddress, currentTimeMillis);
 
       return true;
     }
   }
 
-  public LoadingCache<String, String> createCache() {
+  private LoadingCache<String, String> createCache() {
     RemovalListener<String, String> removalListener = notification -> {
+      // extract the ipAddress and currentTimeMillis from the entry
       String key = notification.getKey();
       String ipAddress = key.substring(key.indexOf("*") + 1, key.indexOf("_"));
       long currentTimeMillis = Long.parseLong(key.substring(key.indexOf("_") + 1));
-      log.info("key, ipAddress, currentTimeMillis: {}, {}, {}", key, ipAddress,
+      log.trace("key, ipAddress, currentTimeMillis: {}, {}, {}", key, ipAddress,
           currentTimeMillis);
 
       acceptedRequestsTracker.removeFromAcceptedRequests(ipAddress, currentTimeMillis);

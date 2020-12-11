@@ -1,9 +1,9 @@
 package com.at.ratelimiter.service;
 
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,10 +14,10 @@ import org.springframework.stereotype.Service;
 @Data
 public class AcceptedRequestsTracker {
 
-  @Value("${cache.expiry:10}")
+  @Value("${cache.expiry:3600}")
   private int cacheExpiry;
 
-  private final Map<String, LinkedList<Long>> acceptedRequests = new HashMap<>();
+  private final Map<String, LinkedList<Long>> acceptedRequests = new ConcurrentHashMap<>();
 
   public void addToAcceptedRequests(String ipAddress, Long currentTimeMillis) {
     LinkedList<Long> acceptedRequestsForIp;
@@ -28,7 +28,7 @@ public class AcceptedRequestsTracker {
     } else {
       acceptedRequestsForIp = new LinkedList<>();
       acceptedRequestsForIp.add(currentTimeMillis);
-      acceptedRequests.put(ipAddress, acceptedRequestsForIp);
+      acceptedRequests.putIfAbsent(ipAddress, acceptedRequestsForIp);
     }
 
     log.trace("accepted reqs for ip {}: {}", ipAddress, acceptedRequestsForIp.size());
@@ -36,18 +36,14 @@ public class AcceptedRequestsTracker {
 
   public void removeFromAcceptedRequests(String ipAddress, Long currentTimeMillis) {
     List<Long> acceptedRequestsForIp = acceptedRequests.get(ipAddress);
-    log.info("accepted reqs for ip {}: size before removal: {}", ipAddress,
-        acceptedRequestsForIp.size());
     acceptedRequestsForIp.remove(currentTimeMillis);
-    log.info("accepted reqs for ip {}: size after removal: {}", ipAddress,
-        acceptedRequestsForIp.size());
   }
 
   public long getWaitTime(String ipAddress) {
     LinkedList<Long> acceptedRequestsForIp = acceptedRequests.get(ipAddress);
-    long elapsedTimeSinceFirstInterval =
+    long elapsedTimeSinceFirstReq =
         (System.currentTimeMillis() - acceptedRequestsForIp.getFirst()) / 1000;
 
-    return cacheExpiry - elapsedTimeSinceFirstInterval;
+    return cacheExpiry - elapsedTimeSinceFirstReq;
   }
 }

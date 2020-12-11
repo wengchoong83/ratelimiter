@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 
 class RateLimiterServiceTest {
 
-  private AcceptedRequestsTracker acceptedRequestsTracker = new AcceptedRequestsTracker();
+  private final AcceptedRequestsTracker acceptedRequestsTracker = new AcceptedRequestsTracker();
 
   @Test
   void basic_ratelimiting_is_successful() {
@@ -23,7 +23,7 @@ class RateLimiterServiceTest {
   }
 
   @Test
-  void basic_ratelimiting_multiIP_is_successful() throws InterruptedException {
+  void basic_ratelimiting_with_multipleIPs_is_successful() {
     RateLimiterService rateLimiterService = new RateLimiterService(acceptedRequestsTracker);
     rateLimiterService.setRateLimit(2);
     rateLimiterService.setCacheSize(100);
@@ -51,17 +51,17 @@ class RateLimiterServiceTest {
     long initialTime = System.currentTimeMillis();
     assertFalse(rateLimiterService.isWithinRateLimits("1.0.0.1"));
 
-    Thread.sleep(5000 - (System.currentTimeMillis() - initialTime));
+    Thread.sleep(5500 - (System.currentTimeMillis() - initialTime));
 
     assertTrue(rateLimiterService.isWithinRateLimits("1.0.0.1"));
     assertFalse(rateLimiterService.isWithinRateLimits("1.0.0.1"));
   }
 
   @Test
-  void basic_ratelimiting_large_load_is_successful() throws InterruptedException {
+  void basic_ratelimiting_large_load_is_successful() {
     RateLimiterService rateLimiterService = new RateLimiterService(acceptedRequestsTracker);
     rateLimiterService.setRateLimit(200);
-    rateLimiterService.setCacheSize(100000);
+    rateLimiterService.setCacheSize(1000);
     rateLimiterService.setCacheExpiry(60 * 60 * 1000);
 
     for (int i = 0; i < 200; i++) {

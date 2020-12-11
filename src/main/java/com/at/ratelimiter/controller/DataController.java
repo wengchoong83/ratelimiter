@@ -24,15 +24,18 @@ public class DataController {
 
   @GetMapping("/data")
   public ResponseEntity<String> getData(HttpServletRequest request) {
-    log.info("---");
-
     if (rateLimiterService.isWithinRateLimits(request.getRemoteAddr())) {
+      log.info("responding OK for ip {}", request.getRemoteAddr());
+
       return ResponseEntity.ok("Data as requested");
     } else {
-      log.info("responding 429");
+      long waitTime = acceptedRequestsTracker
+          .getWaitTime(request.getRemoteAddr());
+      log.info("responding 429 for ip {}, {} s before being allowed thru", request.getRemoteAddr(),
+          waitTime);
+
       return new ResponseEntity<>(
-          "Rate limit exceeded. Try again in " + acceptedRequestsTracker
-              .getWaitTime(request.getRemoteAddr()) + " seconds",
+          "Rate limit exceeded. Try again in " + waitTime + " seconds",
           HttpStatus.TOO_MANY_REQUESTS);
     }
   }

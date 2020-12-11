@@ -7,7 +7,7 @@ A simple service that ratelimits requests by requestor IP.
 1. This service was written in Java, and built on Spring Boot. You'll need to have JDK8 installed.
 2. Clone this repo.
 3. To build, `cd` into the the root directory of the project and run `./mvnw clean install`
-4. To run, simply execute `./mvnw spring-boot:run`
+4. To run, simply execute `./mvnw spring-boot:run`. Alternatively, if you'll like to run just the JAR without maven, run: `java -jar ratelimiter-0.0.1-SNAPSHOT.jar`.
 5. The service will start up, and if you see the log line `Started RatelimiterApplication in X seconds...`, the service is up and running!
 6. To use the endpoint via cURL: `curl localhost:8080/data`
 
